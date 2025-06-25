@@ -496,29 +496,46 @@ export class MockAPI {
         id: 'mock-1',
         name: '某企业废气排放超标问题',
         formType: '督查在线',
-        location: '开发区',
+        area: '开发区', // 属地信息
         contact: '张三',
         phone: '13800138001',
         deadline: '2025-01-25',
-        status: '处理中',
+        status: '待处理',
+        currentStep: 2,
         createTime: '2024-01-15 10:30:00',
         updateTime: '2024-01-16 14:20:00',
-        creator: '管理员',
-        handler: '张三'
+        creator: '环保局张三',
+        handler: '属地所李四'
       },
       {
         id: 'mock-2',
         name: '工业园区水污染治理',
         formType: '远程帮扶',
-        location: '工业园区',
+        area: '工业园区',
         contact: '李四',
         phone: '13800138002',
         deadline: '-',
         status: '已完成',
+        currentStep: 3,
         createTime: '2024-01-14 09:15:00',
         updateTime: '2024-01-15 16:45:00',
-        creator: '管理员',
-        handler: '李四'
+        creator: '环保局王五',
+        handler: '属地所赵六'
+      },
+      {
+        id: 'mock-3',
+        name: '化工厂噪音污染投诉',
+        formType: '线索核查',
+        area: '高新区',
+        contact: '赵七',
+        phone: '13800138003',
+        deadline: '2025-01-30',
+        status: '处理中',
+        currentStep: 2,
+        createTime: '2024-01-16 14:20:00',
+        updateTime: '2024-01-17 09:30:00',
+        creator: '环保局钱八',
+        handler: '属地所孙九'
       }
     ]
 
@@ -528,18 +545,26 @@ export class MockAPI {
     // 模拟筛选逻辑
     let filteredData = allData
 
+    // 按表单类型筛选
     if (params.formType) {
       filteredData = filteredData.filter(item => item.formType === params.formType)
     }
 
+    // 按状态筛选
     if (params.status) {
       filteredData = filteredData.filter(item => item.status === params.status)
     }
 
+    // 按属地筛选（属地所人员只能看到自己属地的任务）
+    if (params.area) {
+      filteredData = filteredData.filter(item => item.area === params.area)
+    }
+
+    // 按关键词筛选
     if (params.keyword) {
       filteredData = filteredData.filter(item =>
         item.name.includes(params.keyword) ||
-        item.location.includes(params.keyword) ||
+        (item.area && item.area.includes(params.keyword)) ||
         item.contact.includes(params.keyword)
       )
     }
@@ -616,14 +641,15 @@ export class MockAPI {
       id: issueData.id,
       name: issueData.name || '未命名问题',
       formType: issueData.formType,
-      location: location || '-',
+      area: location || '-', // 使用area字段
       contact: contact || '-',
       phone: phone || '-',
       deadline: deadline,
       status: status,
+      currentStep: issueData.currentStep || 1,
       createTime: new Date(issueData.createTime).toLocaleString('zh-CN'),
       updateTime: new Date(issueData.updateTime).toLocaleString('zh-CN'),
-      creator: '管理员',
+      creator: issueData.creator || '环保局人员',
       handler: contact || '-'
     }
   }

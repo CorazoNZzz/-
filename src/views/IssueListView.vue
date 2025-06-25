@@ -34,9 +34,10 @@ import MockAPI from '../utils/api.js'
  * 后端需要提供用户信息接口：GET /api/user/info
  */
 const currentUser = ref({
-  role: '一中队人员', // 用户角色：'一中队人员' | '负责人' | '管理员' | '属地所人员'
+  role: '环保局人员', // 用户角色：'管理员' | '环保局人员' | '属地所人员'
   username: 'testuser', // 用户名
-  realName: '管理员', // 真实姓名
+  realName: '张三', // 真实姓名
+  area: null, // 所属属地，仅属地所人员需要
   permissions: ['view', 'create', 'edit'] // 权限列表
 })
 
@@ -78,10 +79,13 @@ const pagination = ref({
 
 /**
  * 计算当前用户是否有新建问题的权限
- * 业务规则：属地所人员无权新建问题
+ * 业务规则：
+ * - 管理员：有权限
+ * - 环保局人员：有权限
+ * - 属地所人员：无权限
  */
 const canCreateIssue = computed(() => {
-  return currentUser.value.role !== '属地所人员'
+  return ['管理员', '环保局人员'].includes(currentUser.value.role)
 })
 
 /**
@@ -122,6 +126,7 @@ const filteredTableData = computed(() => {
  * - pageSize: 每页条数
  * - formType: 表单类型筛选
  * - keyword: 搜索关键词
+ * - area: 属地筛选（属地所人员自动过滤）
  * - status: 状态筛选（可选）
  */
 const fetchIssueList = async () => {
@@ -133,6 +138,11 @@ const fetchIssueList = async () => {
       pageSize: pagination.value.pageSize,
       formType: filterFormType.value,
       keyword: searchKeyword.value
+    }
+
+    // 属地所人员只能看到自己属地的任务
+    if (currentUser.value.role === '属地所人员' && currentUser.value.area) {
+      params.area = currentUser.value.area
     }
 
     const result = await MockAPI.getIssueList(params)
@@ -216,7 +226,7 @@ const getActionButtonText = (status) => {
 
 /**
  * 获取问题查看路由
- * 根据表单类型生成对应的路由路径
+ * 根据表单类型和用户角色生成对应的路由路径
  *
  * @param {Object} row - 表格行数据
  * @returns {string} 路由路径
@@ -231,7 +241,21 @@ const getIssueViewRoute = (row) => {
   }
 
   const routeType = typeMap[row.formType] || 'supervision'
-  return `/issue/${row.id}/${routeType}/step1`
+
+  // 根据用户角色决定进入哪一步
+  let step = 1
+  if (currentUser.value.role === '属地所人员') {
+    // 属地所人员直接进入第二步
+    step = 2
+  } else if (currentUser.value.role === '环保局人员') {
+    // 环保局人员只能看第一步
+    step = 1
+  } else {
+    // 管理员可以看所有步骤，根据当前进度决定
+    step = row.currentStep || 1
+  }
+
+  return `/issue/${row.id}/${routeType}/step${step}`
 }
 
 /**

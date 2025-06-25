@@ -74,7 +74,7 @@ const router = createRouter({
       meta: {
         title: '问题汇总',
         requiresAuth: true, // 需要登录访问
-        roles: ['一中队人员', '负责人', '管理员', '属地所人员'] // 允许访问的角色
+        roles: ['管理员', '环保局人员', '属地所人员'] // 允许访问的角色
       }
     },
 
@@ -89,7 +89,7 @@ const router = createRouter({
       meta: {
         title: '新建问题',
         requiresAuth: true,
-        roles: ['一中队人员', '负责人', '管理员'] // 属地所人员无权创建
+        roles: ['管理员', '环保局人员'] // 只有管理员和环保局人员可以创建
       }
     },
 
@@ -109,7 +109,8 @@ const router = createRouter({
         title: '督查在线 - 交办信息',
         requiresAuth: true,
         formType: '督查在线',
-        step: 1
+        step: 1,
+        roles: ['管理员', '环保局人员'] // 只有管理员和环保局人员可以填写第一步
       }
     },
 
@@ -125,7 +126,8 @@ const router = createRouter({
         title: '督查在线 - 问题交办',
         requiresAuth: true,
         formType: '督查在线',
-        step: 2
+        step: 2,
+        roles: ['管理员', '属地所人员'] // 只有管理员和属地所人员可以填写第二步
       }
     },
 
@@ -141,7 +143,8 @@ const router = createRouter({
         title: '督查在线 - 整改情况',
         requiresAuth: true,
         formType: '督查在线',
-        step: 3
+        step: 3,
+        roles: ['管理员', '属地所人员'] // 只有管理员和属地所人员可以填写第三步
       }
     },
 
@@ -161,7 +164,8 @@ const router = createRouter({
         title: '远程帮扶 - 交办信息',
         requiresAuth: true,
         formType: '远程帮扶',
-        step: 1
+        step: 1,
+        roles: ['管理员', '环保局人员'] // 只有管理员和环保局人员可以填写第一步
       }
     },
 
@@ -177,7 +181,8 @@ const router = createRouter({
         title: '远程帮扶 - 帮扶过程',
         requiresAuth: true,
         formType: '远程帮扶',
-        step: 2
+        step: 2,
+        roles: ['管理员', '属地所人员'] // 只有管理员和属地所人员可以填写第二步
       }
     },
 
@@ -193,7 +198,8 @@ const router = createRouter({
         title: '远程帮扶 - 效果评估',
         requiresAuth: true,
         formType: '远程帮扶',
-        step: 3
+        step: 3,
+        roles: ['管理员', '属地所人员'] // 只有管理员和属地所人员可以填写第三步
       }
     },
 
@@ -213,7 +219,8 @@ const router = createRouter({
         title: '数字化指挥中心 - 事件信息',
         requiresAuth: true,
         formType: '数字化指挥中心',
-        step: 1
+        step: 1,
+        roles: ['管理员', '环保局人员'] // 只有管理员和环保局人员可以填写第一步
       }
     },
 
@@ -229,7 +236,8 @@ const router = createRouter({
         title: '数字化指挥中心 - 指挥调度',
         requiresAuth: true,
         formType: '数字化指挥中心',
-        step: 2
+        step: 2,
+        roles: ['管理员', '属地所人员'] // 只有管理员和属地所人员可以填写第二步
       }
     },
 
@@ -245,7 +253,8 @@ const router = createRouter({
         title: '数字化指挥中心 - 处置结果',
         requiresAuth: true,
         formType: '数字化指挥中心',
-        step: 3
+        step: 3,
+        roles: ['管理员', '属地所人员'] // 只有管理员和属地所人员可以填写第三步
       }
     },
 
@@ -265,7 +274,8 @@ const router = createRouter({
         title: '线索核查 - 线索信息',
         requiresAuth: true,
         formType: '线索核查',
-        step: 1
+        step: 1,
+        roles: ['管理员', '环保局人员'] // 只有管理员和环保局人员可以填写第一步
       }
     },
 
@@ -281,7 +291,8 @@ const router = createRouter({
         title: '线索核查 - 核查过程',
         requiresAuth: true,
         formType: '线索核查',
-        step: 2
+        step: 2,
+        roles: ['管理员', '属地所人员'] // 只有管理员和属地所人员可以填写第二步
       }
     },
 
@@ -297,7 +308,8 @@ const router = createRouter({
         title: '线索核查 - 核查结果',
         requiresAuth: true,
         formType: '线索核查',
-        step: 3
+        step: 3,
+        roles: ['管理员', '属地所人员'] // 只有管理员和属地所人员可以填写第三步
       }
     },
 
@@ -407,20 +419,43 @@ router.beforeEach((to, from, next) => {
     document.title = `${to.meta.title} - 环保局问题交办系统`
   }
 
-  // 权限验证（如果需要）
+  // 权限验证
   if (to.meta.requiresAuth) {
-    // 这里可以添加用户认证逻辑
-    // 检查用户是否登录，是否有访问权限等
+    // 检查用户是否登录
+    const userInfo = localStorage.getItem('userInfo')
 
-    // 示例：检查用户角色权限
-    const userRole = localStorage.getItem('user_role') || '一中队人员'
-
-    if (to.meta.roles && !to.meta.roles.includes(userRole)) {
-      // 用户没有访问权限
-      console.warn(`用户角色 ${userRole} 无权访问 ${to.path}`)
-      // 可以重定向到无权限页面或首页
+    if (!userInfo) {
+      // 未登录，重定向到登录页面或首页
+      console.warn('用户未登录，需要重定向到登录页面')
       next('/')
       return
+    }
+
+    // 检查角色权限
+    if (to.meta.roles && to.meta.roles.length > 0) {
+      try {
+        const user = JSON.parse(userInfo)
+        const userRole = user.role || '环保局人员' // 默认角色
+
+        if (!to.meta.roles.includes(userRole)) {
+          // 权限不足
+          console.warn(`用户角色 ${userRole} 无权访问页面 ${to.path}`)
+          // 显示权限不足提示并返回首页
+          next('/')
+          return
+        }
+
+        // 属地所人员额外检查：只能访问自己属地的任务
+        if (userRole === '属地所人员' && to.params.id && user.area) {
+          // 这里应该检查任务是否属于当前用户的属地
+          // 实际实现中需要调用API验证任务的属地信息
+          console.log(`属地所人员 ${user.realName} 访问任务 ${to.params.id}`)
+        }
+      } catch (error) {
+        console.error('用户信息解析失败:', error)
+        next('/')
+        return
+      }
     }
   }
 
