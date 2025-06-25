@@ -1,3 +1,11 @@
+<!--
+  督查在线第二步：问题交办
+  功能：属地所人员填写整改相关信息和措施
+  字段：整改时限、整改措施、整改状态、整改时间、整改情况、下步计划、上传附件
+  权限：属地所人员填写
+  作者：CorazoN
+  创建时间：2025年6月
+-->
 <template>
   <div class="page-container">
     <div class="header-bar">
@@ -15,16 +23,15 @@
         :active="2"
         finish-status="success"
         align-center
-        style="cursor: pointer; margin-bottom: 32px"
+        style="margin-bottom: 32px"
       >
-        <el-step title="交办信息" @click="goToStep1" />
+        <el-step title="交办信息" />
         <el-step title="问题交办" description="督查在线 - 问题交办" />
-        <el-step title="整改情况" @click="goToStep3" />
+        <el-step title="整改情况" />
       </el-steps>
 
       <!-- 表单内容 -->
       <div class="content-area">
-        <h3 style="color: #217346; margin-bottom: 20px">督查在线 - 问题交办</h3>
 
         <el-form
           ref="formRef"
@@ -33,61 +40,76 @@
           label-width="120px"
           style="max-width: 800px"
         >
-          <el-form-item label="交办日期" prop="assignDate">
+          <el-form-item label="整改时限" prop="deadline">
             <el-date-picker
-              v-model="formData.assignDate"
+              v-model="formData.deadline"
               type="date"
-              placeholder="请选择交办日期"
+              placeholder="请选择整改时限"
               style="width: 100%"
             />
           </el-form-item>
 
-          <el-form-item label="交办单位" prop="assignUnit">
-            <el-input v-model="formData.assignUnit" placeholder="请输入交办单位" />
-          </el-form-item>
-
-          <el-form-item label="交办内容" prop="assignContent">
+          <el-form-item label="整改措施" prop="rectificationMeasures">
             <el-input
-              v-model="formData.assignContent"
+              v-model="formData.rectificationMeasures"
               type="textarea"
               :rows="4"
-              placeholder="请详细描述交办内容"
+              placeholder="请详细描述整改措施"
               maxlength="1000"
               show-word-limit
             />
           </el-form-item>
 
-          <el-form-item label="整改要求" prop="rectificationRequirement">
+          <el-form-item label="整改状态" prop="rectificationStatus">
+            <el-radio-group v-model="formData.rectificationStatus">
+              <el-radio value="整改中">整改中</el-radio>
+              <el-radio value="整改完成">整改完成</el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item label="整改时间" prop="rectificationTime">
+            <el-date-picker
+              v-model="formData.rectificationTime"
+              type="datetime"
+              placeholder="请选择整改时间"
+              style="width: 100%"
+            />
+          </el-form-item>
+
+          <el-form-item label="整改情况" prop="rectificationSituation">
             <el-input
-              v-model="formData.rectificationRequirement"
+              v-model="formData.rectificationSituation"
+              type="textarea"
+              :rows="4"
+              placeholder="请详细描述整改情况"
+              maxlength="1000"
+              show-word-limit
+            />
+          </el-form-item>
+
+          <el-form-item label="下步计划" prop="nextPlan">
+            <el-input
+              v-model="formData.nextPlan"
               type="textarea"
               :rows="3"
-              placeholder="请输入整改要求"
+              placeholder="请输入下步计划"
               maxlength="500"
               show-word-limit
             />
           </el-form-item>
 
-          <el-form-item label="责任单位" prop="responsibleUnit">
-            <el-input v-model="formData.responsibleUnit" placeholder="请输入责任单位" />
-          </el-form-item>
-
-          <el-form-item label="责任人" prop="responsiblePerson">
-            <el-input v-model="formData.responsiblePerson" placeholder="请输入责任人姓名" />
-          </el-form-item>
-
-          <el-form-item label="附件资料">
+          <el-form-item label="上传附件">
             <el-upload
               class="upload-demo"
               drag
               multiple
               :auto-upload="false"
-              accept=".pdf,.doc,.docx"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
             >
               <el-icon class="el-icon--upload"><upload-filled /></el-icon>
               <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
               <template #tip>
-                <div class="el-upload__tip">支持 PDF/Word 文件，且不超过 20MB</div>
+                <div class="el-upload__tip">支持 PDF/Word/图片 文件，且不超过 20MB</div>
               </template>
             </el-upload>
           </el-form-item>
@@ -97,7 +119,7 @@
       <!-- 操作按钮 -->
       <div class="action-buttons">
         <div class="left-actions">
-          <el-button @click="prevStep"> 上一步 </el-button>
+          <!-- 移除上一步按钮 -->
         </div>
 
         <div class="right-actions">
@@ -105,7 +127,7 @@
 
           <ReportGenerator :issue-data="issueData" :form-type="'督查在线'" />
 
-          <el-button type="primary" @click="nextStep" :loading="saving"> 下一步 </el-button>
+          <el-button type="primary" @click="submitStep" :loading="saving"> 提交 </el-button>
         </div>
       </div>
     </el-card>
@@ -118,6 +140,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
 import ReportGenerator from '../../../components/ReportGenerator.vue'
+import { MockAPI } from '../../../utils/api.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -127,18 +150,19 @@ const issueId = ref(route.params.id)
 
 // 表单数据
 const formData = ref({
-  assignDate: null,
-  assignUnit: '',
-  assignContent: '',
-  rectificationRequirement: '',
-  responsibleUnit: '',
-  responsiblePerson: '',
+  deadline: null,
+  rectificationMeasures: '',
+  rectificationStatus: '',
+  rectificationTime: null,
+  rectificationSituation: '',
+  nextPlan: '',
 })
 
 // 问题数据
 const issueData = computed(() => ({
   id: issueId.value,
   formType: '督查在线',
+  step: 2,
   ...formData.value,
 }))
 
@@ -151,12 +175,12 @@ const saving = ref(false)
 
 // 表单验证规则
 const formRules = {
-  assignDate: [{ required: true, message: '请选择交办日期', trigger: 'change' }],
-  assignUnit: [{ required: true, message: '请输入交办单位', trigger: 'blur' }],
-  assignContent: [{ required: true, message: '请输入交办内容', trigger: 'blur' }],
-  rectificationRequirement: [{ required: true, message: '请输入整改要求', trigger: 'blur' }],
-  responsibleUnit: [{ required: true, message: '请输入责任单位', trigger: 'blur' }],
-  responsiblePerson: [{ required: true, message: '请输入责任人', trigger: 'blur' }],
+  deadline: [{ required: true, message: '请选择整改时限', trigger: 'change' }],
+  rectificationMeasures: [{ required: true, message: '请输入整改措施', trigger: 'blur' }],
+  rectificationStatus: [{ required: true, message: '请选择整改状态', trigger: 'change' }],
+  rectificationTime: [{ required: true, message: '请选择整改时间', trigger: 'change' }],
+  rectificationSituation: [{ required: true, message: '请输入整改情况', trigger: 'blur' }],
+  nextPlan: [{ required: true, message: '请输入下步计划', trigger: 'blur' }],
 }
 
 // 生命周期
@@ -171,11 +195,20 @@ const loadIssueData = async () => {
   loading.value = true
 
   try {
-    const response = await fetch(`http://localhost:5000/api/issues/${issueId.value}`)
-    const result = await response.json()
+    const result = await MockAPI.getIssue(issueId.value)
 
-    if (result.success) {
-      Object.assign(formData.value, result.data)
+    if (result.success && result.data.formData) {
+      // 加载第二步的数据
+      if (result.data.formData.step2) {
+        Object.assign(formData.value, result.data.formData.step2)
+
+        // 如果是编辑模式（从第三步返回），清空需要重新填写的字段
+        if (route.query.edit === 'true') {
+          formData.value.rectificationStatus = ''
+          formData.value.rectificationTime = null
+          formData.value.rectificationSituation = ''
+        }
+      }
     } else {
       ElMessage.error('加载数据失败')
     }
@@ -194,15 +227,13 @@ const validateForm = async () => {
 
 // 保存数据
 const saveData = async () => {
-  const response = await fetch(`http://localhost:5000/api/issues/${issueId.value}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(issueData.value),
-  })
+  const result = await MockAPI.saveFormData(
+    issueId.value,
+    { step2: formData.value },
+    2, // 步骤2
+    'draft' // 草稿状态
+  )
 
-  const result = await response.json()
   if (!result.success) {
     throw new Error(result.message || '保存失败')
   }
@@ -217,10 +248,6 @@ const saveDraft = async () => {
   try {
     await saveData()
     ElMessage.success('草稿保存成功！')
-
-    setTimeout(() => {
-      router.push('/')
-    }, 1000)
   } catch (error) {
     console.error('保存草稿失败:', error)
     ElMessage.error('保存草稿失败，请重试')
@@ -229,54 +256,69 @@ const saveDraft = async () => {
   }
 }
 
-// 上一步
-const prevStep = () => {
-  router.push({
-    name: 'supervision-step1',
-    params: { id: issueId.value },
-  })
-}
-
-// 下一步
-const nextStep = async () => {
+// 提交第二步（进入第三步）
+const submitStep = async () => {
   const isValid = await validateForm()
   if (!isValid) return
 
   saving.value = true
 
-  try {
+    try {
+    // 保存当前步骤数据
     await saveData()
 
+    // 创建新的整改记录
+    const newRecord = {
+      time: formData.value.rectificationTime,
+      situation: formData.value.rectificationSituation,
+      status: formData.value.rectificationStatus,
+      createTime: new Date().toISOString(),
+    }
+
+    // 获取现有的第三步数据
+    const existingResult = await MockAPI.getIssue(issueId.value)
+    let existingRecords = []
+
+    if (existingResult.success && existingResult.data.formData?.step3?.rectificationRecords) {
+      existingRecords = existingResult.data.formData.step3.rectificationRecords
+    }
+
+    // 添加新记录到现有记录中
+    const updatedRecords = [...existingRecords, newRecord]
+
+    // 保存更新后的整改记录到第三步数据中
+    await MockAPI.saveFormData(
+      issueId.value,
+      {
+        step3: {
+          currentStatus: formData.value.rectificationStatus,
+          rectificationRecords: updatedRecords
+        }
+      },
+      3, // 步骤3
+      'processing' // 处理中状态
+    )
+
+    ElMessage.success('提交成功！')
+
+    // 跳转到第三步
     router.push({
       name: 'supervision-step3',
       params: { id: issueId.value },
     })
   } catch (error) {
-    console.error('保存失败:', error)
-    ElMessage.error('保存失败，请重试')
+    console.error('提交失败:', error)
+    ElMessage.error('提交失败，请重试')
   } finally {
     saving.value = false
   }
 }
 
-// 步骤导航
-const goToStep1 = () => {
-  router.push({
-    name: 'supervision-step1',
-    params: { id: issueId.value },
-  })
-}
-
-const goToStep3 = () => {
-  router.push({
-    name: 'supervision-step3',
-    params: { id: issueId.value },
-  })
-}
+// 上一步功能已移除
 
 // 返回列表
 const handleGoBack = () => {
-  router.push('/')
+  router.push({ name: 'home' })
 }
 </script>
 

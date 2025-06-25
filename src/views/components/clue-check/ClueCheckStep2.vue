@@ -1,435 +1,385 @@
+<!--
+  线索核查第二步：问题交办
+  功能：属地所人员填写问题交办信息
+  字段：调查核实情况、处理情况、督促整改情况、图片上传、文件上传
+  权限：属地所人员填写
+  作者：CorazoN
+  创建时间：2025年6月
+-->
 <template>
-  <div class="clue-check-step2">
-    <el-card class="step-card">
-      <template #header>
-        <div class="card-header">
-          <h3>第二步：问题交办</h3>
-          <span class="step-desc">填写核查交办信息</span>
-        </div>
-      </template>
+  <div class="page-container">
+    <div class="header-bar">
+      <img src="/src/assets/logo.svg" class="logo" alt="logo" />
+      <div class="system-title">环保局问题交办系统</div>
+      <div class="header-actions">
+        <span>登录人：管理员</span>
+        <el-button type="primary" @click="handleGoBack">返回列表</el-button>
+      </div>
+    </div>
 
-      <el-form ref="formRef" :model="formData" :rules="rules" label-width="140px" class="step-form">
-        <div class="form-section">
-          <h4>交办基本信息</h4>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="核查交办日期" prop="assignDate">
-                <el-date-picker
-                  v-model="formData.assignDate"
-                  type="date"
-                  placeholder="选择核查交办日期"
-                  style="width: 100%"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="交办文号" prop="assignNumber">
-                <el-input v-model="formData.assignNumber" placeholder="请输入交办文号" />
-              </el-form-item>
-            </el-col>
-          </el-row>
+    <el-card shadow="always" class="main-card" v-loading="loading">
+      <!-- 步骤条 -->
+      <el-steps
+        :active="2"
+        finish-status="success"
+        align-center
+        style="margin-bottom: 32px"
+      >
+        <el-step title="交办信息" />
+        <el-step title="问题交办" description="线索核查 - 问题交办" />
+        <el-step title="整改情况" />
+      </el-steps>
 
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="交办单位" prop="assignUnit">
-                <el-input v-model="formData.assignUnit" placeholder="请输入交办单位" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="接收单位" prop="receivingUnit">
-                <el-input v-model="formData.receivingUnit" placeholder="请输入接收单位" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </div>
+      <!-- 表单内容 -->
+      <div class="content-area">
+        <h3 style="color: #217346; margin-bottom: 20px">线索核查 - 问题交办</h3>
 
-        <div class="form-section">
-          <h4>核查内容</h4>
-          <el-form-item label="核查内容" prop="checkContent">
+        <el-form
+          ref="formRef"
+          :model="formData"
+          :rules="formRules"
+          label-width="140px"
+          style="max-width: 800px"
+        >
+          <el-form-item label="调查核实情况" prop="investigationResult">
             <el-input
-              v-model="formData.checkContent"
+              v-model="formData.investigationResult"
               type="textarea"
               :rows="5"
-              placeholder="请详细填写需要核查的内容..."
+              placeholder="请详细描述调查核实的情况和结果"
+              maxlength="2000"
+              show-word-limit
             />
           </el-form-item>
 
-          <el-form-item label="核查要求" prop="checkRequirement">
+          <el-form-item label="处理情况" prop="handlingSituation">
             <el-input
-              v-model="formData.checkRequirement"
+              v-model="formData.handlingSituation"
               type="textarea"
               :rows="4"
-              placeholder="请填写具体的核查要求和标准..."
+              placeholder="请描述具体的处理情况和措施"
+              maxlength="1500"
+              show-word-limit
             />
           </el-form-item>
 
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="要求完成时间" prop="requiredCompletionTime">
-                <el-date-picker
-                  v-model="formData.requiredCompletionTime"
-                  type="date"
-                  placeholder="选择要求完成时间"
-                  style="width: 100%"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="核查类型" prop="checkType">
-                <el-select
-                  v-model="formData.checkType"
-                  placeholder="请选择核查类型"
-                  style="width: 100%"
-                >
-                  <el-option label="现场核查" value="现场核查" />
-                  <el-option label="书面核查" value="书面核查" />
-                  <el-option label="综合核查" value="综合核查" />
-                  <el-option label="专项核查" value="专项核查" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </div>
-
-        <div class="form-section">
-          <h4>核查重点</h4>
-          <el-form-item label="核查重点" prop="checkFocus">
+          <el-form-item label="督促整改情况" prop="supervisionSituation">
             <el-input
-              v-model="formData.checkFocus"
+              v-model="formData.supervisionSituation"
               type="textarea"
               :rows="4"
-              placeholder="请填写核查的重点内容和关键问题..."
+              placeholder="请描述督促整改的具体情况"
+              maxlength="1500"
+              show-word-limit
             />
           </el-form-item>
 
-          <el-form-item label="核查方法" prop="checkMethod">
-            <el-input
-              v-model="formData.checkMethod"
-              type="textarea"
-              :rows="3"
-              placeholder="请填写核查采用的方法和技术手段..."
-            />
-          </el-form-item>
-
-          <el-form-item label="核查范围" prop="checkScope">
-            <el-input
-              v-model="formData.checkScope"
-              type="textarea"
-              :rows="3"
-              placeholder="请填写核查的地理范围和时间范围..."
-            />
-          </el-form-item>
-        </div>
-
-        <div class="form-section">
-          <h4>配合部门</h4>
-          <el-form-item label="配合部门" prop="cooperatingDepartments">
-            <el-input
-              v-model="formData.cooperatingDepartments"
-              type="textarea"
-              :rows="3"
-              placeholder="请填写需要配合的部门和单位..."
-            />
-          </el-form-item>
-
-          <el-form-item label="技术支持" prop="technicalSupport">
-            <el-input
-              v-model="formData.technicalSupport"
-              type="textarea"
-              :rows="3"
-              placeholder="请填写需要的技术支持和专家协助..."
-            />
-          </el-form-item>
-        </div>
-
-        <div class="form-section">
-          <h4>核查负责人</h4>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="核查负责人" prop="checkLeader">
-                <el-input v-model="formData.checkLeader" placeholder="请输入核查负责人姓名" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="联系电话" prop="leaderPhone">
-                <el-input v-model="formData.leaderPhone" placeholder="请输入负责人联系电话" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-form-item label="核查组成员" prop="checkMembers">
-            <el-input
-              v-model="formData.checkMembers"
-              type="textarea"
-              :rows="3"
-              placeholder="请填写核查组成员信息..."
-            />
-          </el-form-item>
-        </div>
-
-        <div class="form-section">
-          <h4>注意事项</h4>
-          <el-form-item label="注意事项" prop="precautions">
-            <el-input
-              v-model="formData.precautions"
-              type="textarea"
-              :rows="4"
-              placeholder="请填写核查过程中需要注意的事项..."
-            />
-          </el-form-item>
-
-          <el-form-item label="安全要求" prop="safetyRequirements">
-            <el-input
-              v-model="formData.safetyRequirements"
-              type="textarea"
-              :rows="3"
-              placeholder="请填写核查过程中的安全要求..."
-            />
-          </el-form-item>
-        </div>
-
-        <div class="form-section">
-          <h4>相关文件</h4>
-          <el-form-item label="交办文件">
+          <el-form-item label="图片上传">
             <el-upload
-              ref="uploadRef"
-              :file-list="formData.attachments"
-              :on-change="handleFileChange"
-              :on-remove="handleFileRemove"
-              :before-upload="beforeUpload"
-              :auto-upload="false"
-              accept=".pdf,.doc,.docx,.xls,.xlsx"
-              multiple
+              class="upload-demo"
               drag
+              multiple
+              :auto-upload="false"
+              accept="image/*"
+              :file-list="formData.images"
+              :on-change="handleImageChange"
+              :on-remove="handleImageRemove"
             >
               <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-              <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+              <div class="el-upload__text">将图片拖到此处，或<em>点击上传</em></div>
               <template #tip>
-                <div class="el-upload__tip">支持 PDF、Word、Excel 格式，单个文件不超过 10MB</div>
+                <div class="el-upload__tip">支持 jpg/png 文件，且单个文件不超过 10MB</div>
               </template>
             </el-upload>
           </el-form-item>
 
-          <el-form-item label="备注说明">
-            <el-input
-              v-model="formData.remarks"
-              type="textarea"
-              :rows="3"
-              placeholder="其他需要说明的情况..."
-            />
+          <el-form-item label="文件上传">
+            <el-upload
+              class="upload-demo"
+              drag
+              multiple
+              :auto-upload="false"
+              :file-list="formData.files"
+              :on-change="handleFileChange"
+              :on-remove="handleFileRemove"
+            >
+              <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+              <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+              <template #tip>
+                <div class="el-upload__tip">支持各种格式文件，且单个文件不超过 50MB</div>
+              </template>
+            </el-upload>
           </el-form-item>
-        </div>
-      </el-form>
+        </el-form>
+      </div>
 
       <!-- 操作按钮 -->
-      <div class="form-actions">
-        <el-button @click="$emit('prev')">上一步</el-button>
-        <el-button @click="saveDraft" :loading="loading">保存草稿</el-button>
-        <el-button type="primary" @click="nextStep" :loading="loading">下一步</el-button>
+      <div class="action-buttons">
+        <div class="left-actions">
+          <!-- 第二步没有上一步 -->
+        </div>
+
+        <div class="right-actions">
+          <el-button @click="saveDraft" :loading="saving"> 保存草稿 </el-button>
+
+          <ReportGenerator :issue-data="issueData" :form-type="'线索核查'" />
+
+          <el-button type="primary" @click="nextStep" :loading="saving"> 下一步 </el-button>
+        </div>
       </div>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
+import ReportGenerator from '../../../components/ReportGenerator.vue'
+import { MockAPI } from '../../../utils/api.js'
 
-const formRef = ref()
-const uploadRef = ref()
-const loading = ref(false)
+const route = useRoute()
+const router = useRouter()
+
+// 问题ID
+const issueId = ref(route.params.id)
 
 // 表单数据
-const formData = reactive({
-  assignDate: new Date(),
-  assignNumber: '',
-  assignUnit: '',
-  receivingUnit: '',
-  checkContent: '',
-  checkRequirement: '',
-  requiredCompletionTime: '',
-  checkType: '',
-  checkFocus: '',
-  checkMethod: '',
-  checkScope: '',
-  cooperatingDepartments: '',
-  technicalSupport: '',
-  checkLeader: '',
-  leaderPhone: '',
-  checkMembers: '',
-  precautions: '',
-  safetyRequirements: '',
-  attachments: [],
-  remarks: '',
+const formData = ref({
+  investigationResult: '',
+  handlingSituation: '',
+  supervisionSituation: '',
+  images: [],
+  files: [],
 })
 
+// 问题数据
+const issueData = computed(() => ({
+  id: issueId.value,
+  formType: '线索核查',
+  step: 2,
+  ...formData.value,
+}))
+
+// 表单引用
+const formRef = ref()
+
+// 状态
+const loading = ref(false)
+const saving = ref(false)
+
 // 表单验证规则
-const rules = {
-  assignDate: [{ required: true, message: '请选择核查交办日期', trigger: 'change' }],
-  assignNumber: [{ required: true, message: '请输入交办文号', trigger: 'blur' }],
-  assignUnit: [{ required: true, message: '请输入交办单位', trigger: 'blur' }],
-  receivingUnit: [{ required: true, message: '请输入接收单位', trigger: 'blur' }],
-  checkContent: [
-    { required: true, message: '请填写核查内容', trigger: 'blur' },
-    { min: 20, message: '核查内容至少20个字符', trigger: 'blur' },
+const formRules = {
+  investigationResult: [
+    { required: true, message: '请输入调查核实情况', trigger: 'blur' },
+    { min: 20, message: '调查核实情况至少20个字符', trigger: 'blur' },
   ],
-  checkRequirement: [
-    { required: true, message: '请填写核查要求', trigger: 'blur' },
-    { min: 10, message: '核查要求至少10个字符', trigger: 'blur' },
+  handlingSituation: [
+    { required: true, message: '请输入处理情况', trigger: 'blur' },
+    { min: 15, message: '处理情况至少15个字符', trigger: 'blur' },
   ],
-  requiredCompletionTime: [{ required: true, message: '请选择要求完成时间', trigger: 'change' }],
-  checkType: [{ required: true, message: '请选择核查类型', trigger: 'change' }],
-  checkLeader: [{ required: true, message: '请输入核查负责人', trigger: 'blur' }],
-  leaderPhone: [
-    { required: true, message: '请输入联系电话', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' },
+  supervisionSituation: [
+    { required: true, message: '请输入督促整改情况', trigger: 'blur' },
+    { min: 15, message: '督促整改情况至少15个字符', trigger: 'blur' },
   ],
 }
 
-// 组件通信
-const emit = defineEmits(['prev', 'next'])
+// 生命周期
+onMounted(async () => {
+  await loadIssueData()
+})
+
+// 加载问题数据
+const loadIssueData = async () => {
+  loading.value = true
+
+  try {
+    const result = await MockAPI.getIssue(issueId.value)
+
+    if (result.success && result.data.formData) {
+      // 加载第二步的数据
+      if (result.data.formData.step2) {
+        Object.assign(formData.value, result.data.formData.step2)
+      }
+    } else {
+      ElMessage.error('加载数据失败')
+    }
+  } catch (error) {
+    console.error('加载数据失败:', error)
+    ElMessage.error('加载数据失败，请重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 验证表单
+const validateForm = async () => {
+  return await formRef.value.validate().catch(() => false)
+}
 
 // 文件上传处理
+const handleImageChange = (file, fileList) => {
+  formData.value.images = fileList
+}
+
+const handleImageRemove = (file, fileList) => {
+  formData.value.images = fileList
+}
+
 const handleFileChange = (file, fileList) => {
-  formData.attachments = fileList
+  formData.value.files = fileList
 }
 
 const handleFileRemove = (file, fileList) => {
-  formData.attachments = fileList
+  formData.value.files = fileList
 }
 
-const beforeUpload = (file) => {
-  const validTypes = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  ]
+// 保存数据
+const saveData = async (status = 'draft') => {
+  const result = await MockAPI.saveFormData(
+    issueId.value,
+    { step2: formData.value },
+    2, // 步骤2
+    status
+  )
 
-  const isValidType = validTypes.includes(file.type)
-  const isLt10M = file.size / 1024 / 1024 < 10
+  if (!result.success) {
+    throw new Error(result.message || '保存失败')
+  }
 
-  if (!isValidType) {
-    ElMessage.error('文件格式不支持!')
-    return false
-  }
-  if (!isLt10M) {
-    ElMessage.error('文件大小不能超过 10MB!')
-    return false
-  }
-  return true
+  return result.data
 }
 
 // 保存草稿
 const saveDraft = async () => {
-  loading.value = true
+  saving.value = true
+
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await saveData('draft')
     ElMessage.success('草稿保存成功！')
-  } catch {
-    ElMessage.error('保存失败，请重试')
+  } catch (error) {
+    console.error('保存草稿失败:', error)
+    ElMessage.error('保存草稿失败，请重试')
   } finally {
-    loading.value = false
+    saving.value = false
   }
 }
 
 // 下一步
 const nextStep = async () => {
-  if (!formRef.value) return
+  const isValid = await validateForm()
+  if (!isValid) return
+
+  saving.value = true
 
   try {
-    await formRef.value.validate()
-    loading.value = true
+    await saveData('processing')
 
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    ElMessage.success('交办信息保存成功！')
-    emit('next', formData)
-  } catch {
-    console.error('验证失败')
+    router.push({
+      name: 'clue-check-step3',
+      params: { id: issueId.value },
+    })
+  } catch (error) {
+    console.error('保存失败:', error)
+    ElMessage.error('保存失败，请重试')
   } finally {
-    loading.value = false
+    saving.value = false
   }
 }
 
-// 加载已有数据
-const loadData = async () => {
-  try {
-    // 模拟加载数据
-  } catch {
-    console.error('加载数据失败')
-  }
+// 返回列表
+const handleGoBack = () => {
+  router.push({ name: 'home' })
 }
-
-onMounted(() => {
-  loadData()
-})
 </script>
 
 <style scoped>
-.clue-check-step2 {
-  max-width: 1000px;
-  margin: 0 auto;
+.page-container {
+  padding: 0;
+  background: linear-gradient(135deg, #e8f5e9 0%, #e3f2fd 100%);
+  min-height: 100vh;
 }
 
-.step-card {
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0 32px;
+  height: 64px;
+  box-shadow: 0 2px 8px rgba(33, 115, 70, 0.04);
+}
+
+.logo {
+  height: 38px;
+  margin-right: 16px;
+}
+
+.system-title {
+  font-size: 22px;
+  font-weight: bold;
+  color: #217346;
+  letter-spacing: 2px;
+  flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.main-card {
+  margin: 40px auto 0 auto;
+  max-width: 900px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 24px 0 rgba(33, 115, 70, 0.08);
+  border: none;
+  background: #fff;
 }
 
-.card-header {
+.content-area {
+  padding: 24px 16px;
+  border: 1px solid #d0e6d5;
+  border-radius: 8px;
+  min-height: 300px;
+  background: #f8fbf7;
+  margin-bottom: 20px;
+}
+
+.action-buttons {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.card-header h3 {
-  margin: 0;
-  color: #217346;
-  font-size: 20px;
-}
-
-.step-desc {
-  color: #666;
-  font-size: 14px;
-}
-
-.step-form {
-  padding: 24px;
-}
-
-.form-section {
-  margin-bottom: 32px;
   padding: 20px;
-  background: #fafafa;
-  border-radius: 8px;
-  border-left: 4px solid #217346;
+  border-top: 1px solid #e0e0e0;
+  background: #fff;
 }
 
-.form-section h4 {
-  margin: 0 0 20px 0;
-  color: #217346;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.form-actions {
+.left-actions,
+.right-actions {
   display: flex;
-  justify-content: center;
-  gap: 16px;
-  padding-top: 24px;
-  border-top: 1px solid #eee;
+  gap: 12px;
+  align-items: center;
 }
 
-.form-actions .el-button {
-  min-width: 120px;
-  height: 40px;
+.el-steps {
+  margin: 30px 0 16px 0;
 }
 
-:deep(.el-upload-dragger) {
+:deep(.el-step__title) {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+:deep(.el-step__description) {
+  font-size: 14px;
+  color: #666;
+}
+
+.upload-demo {
   width: 100%;
-  height: 120px;
 }
 </style>

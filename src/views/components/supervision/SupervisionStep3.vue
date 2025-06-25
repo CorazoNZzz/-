@@ -1,371 +1,297 @@
+<!--
+  督查在线第三步：整改情况
+  功能：属地所人员查看整改状态和历史记录，支持继续编辑
+  权限：属地所人员查看和编辑
+  作者：CorazoN
+  创建时间：2025年6月
+-->
 <template>
-  <div class="supervision-step3">
-    <el-card class="step-card">
-      <template #header>
-        <div class="card-header">
-          <h3>第三步：整改情况</h3>
-          <span class="step-desc">记录问题整改过程和结果</span>
-        </div>
-      </template>
+  <div class="page-container">
+    <div class="header-bar">
+      <img src="/src/assets/logo.svg" class="logo" alt="logo" />
+      <div class="system-title">环保局问题交办系统</div>
+      <div class="header-actions">
+        <span>登录人：管理员</span>
+        <el-button type="primary" @click="handleGoBack">返回列表</el-button>
+      </div>
+    </div>
 
-      <!-- 整改记录列表 -->
-      <div class="records-section" v-if="records.length > 0">
-        <h4>整改记录</h4>
-        <div class="records-list">
-          <el-card
-            v-for="(record, index) in records"
-            :key="index"
-            class="record-item"
-            shadow="hover"
+    <el-card shadow="always" class="main-card" v-loading="loading">
+      <!-- 步骤条 -->
+      <el-steps
+        :active="3"
+        finish-status="success"
+        align-center
+        style="margin-bottom: 32px"
+      >
+        <el-step title="交办信息" />
+        <el-step title="问题交办" />
+        <el-step title="整改情况" description="督查在线 - 整改情况" />
+      </el-steps>
+
+      <!-- 表单内容 -->
+      <div class="content-area">
+
+        <!-- 当前整改状态 -->
+        <div class="status-section">
+          <h4>当前整改状态</h4>
+          <el-tag
+            :type="currentStatus === '整改完成' ? 'success' : 'warning'"
+            size="large"
+            class="status-tag"
           >
-            <div class="record-header">
-              <span class="record-title">第{{ index + 1 }}次整改记录</span>
-              <span class="record-date">{{ formatDate(record.date) }}</span>
+            {{ currentStatus || '未知状态' }}
+          </el-tag>
+        </div>
+
+        <!-- 整改情况记录 -->
+        <div class="records-section">
+          <h4>整改情况记录</h4>
+          <div v-if="rectificationRecords.length === 0" class="no-records">
+            暂无整改记录
+          </div>
+          <div v-else class="records-list">
+            <div
+              v-for="(record, index) in rectificationRecords"
+              :key="index"
+              class="record-item"
+            >
+              <div class="record-header">
+                <span class="record-time">
+                  <el-icon><Clock /></el-icon>
+                  {{ formatDateTime(record.time) }}
+                </span>
+                <el-tag
+                  :type="record.status === '整改完成' ? 'success' : 'warning'"
+                  size="small"
+                >
+                  {{ record.status }}
+                </el-tag>
+              </div>
+              <div class="record-content">
+                {{ record.situation }}
+              </div>
             </div>
-            <div class="record-content">
-              <div class="record-field">
-                <strong>整改措施：</strong>
-                <p>{{ record.measures }}</p>
-              </div>
-              <div class="record-field">
-                <strong>整改效果：</strong>
-                <p>{{ record.effect }}</p>
-              </div>
-              <div class="record-field">
-                <strong>整改状态：</strong>
-                <el-tag :type="getStatusType(record.status)">{{ record.status }}</el-tag>
-              </div>
-              <div class="record-field" v-if="record.photos && record.photos.length > 0">
-                <strong>整改照片：</strong>
-                <div class="photos-preview">
-                  <el-image
-                    v-for="(photo, photoIndex) in record.photos"
-                    :key="photoIndex"
-                    :src="photo.url"
-                    :preview-src-list="record.photos.map((p) => p.url)"
-                    class="photo-item"
-                    fit="cover"
-                  />
-                </div>
-              </div>
-            </div>
-          </el-card>
+          </div>
         </div>
       </div>
 
-      <!-- 新增整改记录表单 -->
-      <div class="new-record-section">
-        <h4>{{ records.length > 0 ? '新增整改记录' : '填写整改情况' }}</h4>
-        <el-form
-          ref="formRef"
-          :model="formData"
-          :rules="rules"
-          label-width="120px"
-          class="step-form"
-        >
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="整改日期" prop="date">
-                <el-date-picker
-                  v-model="formData.date"
-                  type="date"
-                  placeholder="选择整改日期"
-                  style="width: 100%"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="整改状态" prop="status">
-                <el-select
-                  v-model="formData.status"
-                  placeholder="请选择整改状态"
-                  style="width: 100%"
-                >
-                  <el-option label="整改中" value="整改中" />
-                  <el-option label="已完成" value="已完成" />
-                  <el-option label="需要继续整改" value="需要继续整改" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
+            <!-- 操作按钮 -->
+      <div class="action-buttons">
+        <div class="left-actions">
+          <!-- 移除上一步按钮 -->
+        </div>
 
-          <el-form-item label="整改措施" prop="measures">
-            <el-input
-              v-model="formData.measures"
-              type="textarea"
-              :rows="4"
-              placeholder="请详细描述采取的整改措施..."
-            />
-          </el-form-item>
+        <div class="right-actions">
+          <ReportGenerator :issue-data="issueData" :form-type="'督查在线'" />
 
-          <el-form-item label="整改效果" prop="effect">
-            <el-input
-              v-model="formData.effect"
-              type="textarea"
-              :rows="4"
-              placeholder="请描述整改后的效果和变化..."
-            />
-          </el-form-item>
+          <!-- 只有整改中状态才显示继续编辑按钮 -->
+          <el-button
+            v-if="currentStatus === '整改中'"
+            type="primary"
+            @click="continueEdit"
+          >
+            继续编辑
+          </el-button>
 
-          <el-form-item label="整改负责人" prop="responsible">
-            <el-input v-model="formData.responsible" placeholder="请输入整改负责人姓名" />
-          </el-form-item>
-
-          <el-form-item label="联系电话" prop="phone">
-            <el-input v-model="formData.phone" placeholder="请输入联系电话" />
-          </el-form-item>
-
-          <el-form-item label="整改照片">
-            <el-upload
-              ref="uploadRef"
-              :file-list="formData.photos"
-              :on-change="handlePhotoChange"
-              :on-remove="handlePhotoRemove"
-              :before-upload="beforeUpload"
-              :auto-upload="false"
-              accept="image/*"
-              multiple
-              list-type="picture-card"
-            >
-              <el-icon><Plus /></el-icon>
-            </el-upload>
-            <div class="upload-tip">支持 jpg、png、gif 格式，单个文件不超过 5MB</div>
-          </el-form-item>
-
-          <el-form-item label="备注说明">
-            <el-input
-              v-model="formData.remarks"
-              type="textarea"
-              :rows="3"
-              placeholder="其他需要说明的情况..."
-            />
-          </el-form-item>
-        </el-form>
-      </div>
-
-      <!-- 操作按钮 -->
-      <div class="form-actions">
-        <el-button @click="$emit('prev')">上一步</el-button>
-        <el-button type="primary" @click="addRecord" :loading="loading">
-          {{ records.length > 0 ? '添加整改记录' : '保存整改情况' }}
-        </el-button>
-        <el-button
-          v-if="formData.status === '已完成'"
-          type="success"
-          @click="completeIssue"
-          :loading="loading"
-        >
-          完成问题处理
-        </el-button>
+          <!-- 整改完成状态显示完成按钮 -->
+          <el-button
+            v-else-if="currentStatus === '整改完成'"
+            type="success"
+            disabled
+          >
+            整改已完成
+          </el-button>
+        </div>
       </div>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { Clock } from '@element-plus/icons-vue'
+import ReportGenerator from '../../../components/ReportGenerator.vue'
+import { MockAPI } from '../../../utils/api.js'
 
 const route = useRoute()
-const formRef = ref()
-const uploadRef = ref()
+const router = useRouter()
+
+// 问题ID
+const issueId = ref(route.params.id)
+
+// 数据状态
 const loading = ref(false)
+const currentStatus = ref('')
+const rectificationRecords = ref([])
 
-// 整改记录列表
-const records = ref([])
+// 问题数据
+const issueData = computed(() => ({
+  id: issueId.value,
+  formType: '督查在线',
+  step: 3,
+  currentStatus: currentStatus.value,
+  rectificationRecords: rectificationRecords.value,
+}))
 
-// 表单数据
-const formData = reactive({
-  date: new Date(),
-  status: '',
-  measures: '',
-  effect: '',
-  responsible: '',
-  phone: '',
-  photos: [],
-  remarks: '',
+// 生命周期
+onMounted(async () => {
+  if (issueId.value && issueId.value !== 'new') {
+    await loadIssueData()
+  }
 })
 
-// 表单验证规则
-const rules = {
-  date: [{ required: true, message: '请选择整改日期', trigger: 'change' }],
-  status: [{ required: true, message: '请选择整改状态', trigger: 'change' }],
-  measures: [
-    { required: true, message: '请填写整改措施', trigger: 'blur' },
-    { min: 10, message: '整改措施至少10个字符', trigger: 'blur' },
-  ],
-  effect: [
-    { required: true, message: '请填写整改效果', trigger: 'blur' },
-    { min: 10, message: '整改效果至少10个字符', trigger: 'blur' },
-  ],
-  responsible: [{ required: true, message: '请填写整改负责人', trigger: 'blur' }],
-  phone: [
-    { required: true, message: '请填写联系电话', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' },
-  ],
-}
-
-// 组件通信
-const emit = defineEmits(['prev', 'complete'])
-
-// 格式化日期
-const formatDate = (date) => {
-  if (!date) return ''
-  return new Date(date).toLocaleDateString('zh-CN')
-}
-
-// 获取状态标签类型
-const getStatusType = (status) => {
-  const typeMap = {
-    整改中: 'warning',
-    已完成: 'success',
-    需要继续整改: 'danger',
-  }
-  return typeMap[status] || 'info'
-}
-
-// 文件上传处理
-const handlePhotoChange = (file, fileList) => {
-  formData.photos = fileList
-}
-
-const handlePhotoRemove = (file, fileList) => {
-  formData.photos = fileList
-}
-
-const beforeUpload = (file) => {
-  const isImage = file.type.startsWith('image/')
-  const isLt5M = file.size / 1024 / 1024 < 5
-
-  if (!isImage) {
-    ElMessage.error('只能上传图片文件!')
-    return false
-  }
-  if (!isLt5M) {
-    ElMessage.error('图片大小不能超过 5MB!')
-    return false
-  }
-  return true
-}
-
-// 添加整改记录
-const addRecord = async () => {
-  if (!formRef.value) return
+// 加载问题数据
+const loadIssueData = async () => {
+  loading.value = true
 
   try {
-    await formRef.value.validate()
-    loading.value = true
+    const result = await MockAPI.getIssue(issueId.value)
 
-    // 模拟API调用
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // 添加到记录列表
-    const newRecord = {
-      ...formData,
-      date: new Date(formData.date),
-      photos: [...formData.photos],
+    if (result.success && result.data.formData) {
+      // 加载第三步的数据
+      if (result.data.formData.step3) {
+        currentStatus.value = result.data.formData.step3.currentStatus || ''
+        rectificationRecords.value = result.data.formData.step3.rectificationRecords || []
+      }
+    } else {
+      ElMessage.error('加载数据失败')
     }
-    records.value.push(newRecord)
-
-    // 重置表单
-    formRef.value.resetFields()
-    formData.photos = []
-
-    ElMessage.success(records.value.length === 1 ? '整改情况保存成功！' : '整改记录添加成功！')
-
-    // 如果状态是已完成，询问是否完成问题处理
-    if (newRecord.status === '已完成') {
-      ElMessageBox.confirm('整改状态为已完成，是否完成整个问题的处理？', '确认完成', {
-        confirmButtonText: '完成处理',
-        cancelButtonText: '继续编辑',
-        type: 'success',
-      })
-        .then(() => {
-          completeIssue()
-        })
-        .catch(() => {
-          // 用户选择继续编辑
-        })
-    }
-  } catch (error) {
-    console.error('保存失败:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-// 完成问题处理
-const completeIssue = async () => {
-  try {
-    loading.value = true
-
-    // 模拟API调用
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    ElMessage.success('问题处理完成！')
-    emit('complete')
-  } catch (error) {
-    ElMessage.error('操作失败，请重试')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 加载已有数据
-const loadData = async () => {
-  try {
-    const issueId = route.params.id
-    // 模拟加载整改记录
-    // const response = await api.getIssueRecords(issueId)
-    // records.value = response.data || []
   } catch (error) {
     console.error('加载数据失败:', error)
+    ElMessage.error('加载数据失败，请重试')
+  } finally {
+    loading.value = false
   }
 }
 
-onMounted(() => {
-  loadData()
-})
+// 格式化日期时间
+const formatDateTime = (dateTime) => {
+  if (!dateTime) return ''
+
+  const date = new Date(dateTime)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+// 继续编辑（返回第二步）
+const continueEdit = () => {
+  router.push({
+    name: 'supervision-step2',
+    params: { id: issueId.value },
+    query: { edit: 'true' } // 标记为编辑模式
+  })
+}
+
+// 上一步功能已移除
+
+// 返回列表
+const handleGoBack = () => {
+  router.push({ name: 'home' })
+}
 </script>
 
 <style scoped>
-.supervision-step3 {
-  max-width: 1000px;
-  margin: 0 auto;
+.page-container {
+  padding: 0;
+  background: linear-gradient(135deg, #e8f5e9 0%, #e3f2fd 100%);
+  min-height: 100vh;
 }
 
-.step-card {
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.card-header {
+.header-bar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0 32px;
+  height: 64px;
+  box-shadow: 0 2px 8px rgba(33, 115, 70, 0.04);
 }
 
-.card-header h3 {
-  margin: 0;
+.logo {
+  height: 38px;
+  margin-right: 16px;
+}
+
+.system-title {
+  font-size: 22px;
+  font-weight: bold;
   color: #217346;
-  font-size: 20px;
+  letter-spacing: 2px;
+  flex: 1;
 }
 
-.step-desc {
-  color: #666;
-  font-size: 14px;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.main-card {
+  margin: 40px auto 0 auto;
+  max-width: 900px;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px 0 rgba(33, 115, 70, 0.08);
+  border: none;
+  background: #fff;
+}
+
+.content-area {
+  padding: 24px 16px;
+  border: 1px solid #d0e6d5;
+  border-radius: 8px;
+  min-height: 300px;
+  background: #f8fbf7;
+  margin-bottom: 20px;
+}
+
+.status-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.status-section h4 {
+  margin: 0 0 15px 0;
+  color: #217346;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.status-tag {
+  font-size: 16px;
+  padding: 8px 16px;
 }
 
 .records-section {
-  margin-bottom: 30px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
 }
 
 .records-section h4 {
+  margin: 0 0 20px 0;
   color: #217346;
-  margin-bottom: 16px;
   font-size: 16px;
+  font-weight: 600;
+}
+
+.no-records {
+  text-align: center;
+  color: #999;
+  padding: 40px 0;
+  font-size: 14px;
 }
 
 .records-list {
@@ -375,7 +301,16 @@ onMounted(() => {
 }
 
 .record-item {
-  border-left: 4px solid #217346;
+  border: 1px solid #e8f5e9;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fafcfa;
+  transition: all 0.3s ease;
+}
+
+.record-item:hover {
+  border-color: #217346;
+  box-shadow: 0 2px 8px rgba(33, 115, 70, 0.1);
 }
 
 .record-header {
@@ -385,89 +320,67 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
-.record-title {
-  font-weight: bold;
-  color: #217346;
-}
-
-.record-date {
+.record-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: #666;
   font-size: 14px;
 }
 
 .record-content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.record-field strong {
   color: #333;
-  margin-right: 8px;
+  line-height: 1.6;
+  font-size: 14px;
 }
 
-.record-field p {
-  margin: 4px 0 0 0;
-  color: #666;
-  line-height: 1.5;
-}
-
-.photos-preview {
+.action-buttons {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-top: 1px solid #e0e0e0;
+  background: #fff;
 }
 
-.photo-item {
-  width: 60px;
-  height: 60px;
-  border-radius: 4px;
+.left-actions,
+.right-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
-.new-record-section {
-  border-top: 1px solid #eee;
-  padding-top: 24px;
+.el-steps {
+  margin: 30px 0 16px 0;
 }
 
-.new-record-section h4 {
-  color: #217346;
-  margin-bottom: 20px;
+:deep(.el-step__title) {
   font-size: 16px;
+  font-weight: bold;
 }
 
-.step-form {
-  background: #fafafa;
-  padding: 24px;
-  border-radius: 8px;
-  margin-bottom: 24px;
+:deep(.el-step__description) {
+  font-size: 14px;
+  color: #666;
 }
 
-.upload-tip {
-  font-size: 12px;
-  color: #999;
-  margin-top: 8px;
-}
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .record-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 
-.form-actions {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  padding-top: 24px;
-  border-top: 1px solid #eee;
-}
+  .action-buttons {
+    flex-direction: column;
+    gap: 16px;
+  }
 
-.form-actions .el-button {
-  min-width: 120px;
-  height: 40px;
-}
-
-:deep(.el-upload--picture-card) {
-  width: 80px;
-  height: 80px;
-}
-
-:deep(.el-upload-list--picture-card .el-upload-list__item) {
-  width: 80px;
-  height: 80px;
+  .left-actions,
+  .right-actions {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

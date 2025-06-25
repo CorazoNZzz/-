@@ -1,3 +1,11 @@
+<!--
+  远程帮扶第一步：交办信息
+  功能：一中队人员填写远程帮扶的基本信息
+  字段：任务编号、轮次、线索描述、污染源信息等
+  权限：一中队人员填写
+  作者：CorazoN
+  创建时间：2025年6月
+-->
 <template>
   <div class="page-container">
     <div class="header-bar">
@@ -15,11 +23,11 @@
         :active="1"
         finish-status="success"
         align-center
-        style="cursor: pointer; margin-bottom: 32px"
+        style="margin-bottom: 32px"
       >
         <el-step title="交办信息" description="远程帮扶 - 交办信息" />
-        <el-step title="问题交办" @click="goToStep2" />
-        <el-step title="整改情况" @click="goToStep3" />
+        <el-step title="问题交办" />
+        <el-step title="整改情况" />
       </el-steps>
 
       <!-- 表单内容 -->
@@ -228,6 +236,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Upload, UploadFilled } from '@element-plus/icons-vue'
 import ReportGenerator from '../../../components/ReportGenerator.vue'
+import { MockAPI } from '../../../utils/api.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -301,11 +310,10 @@ const loadIssueData = async () => {
   loading.value = true
 
   try {
-    const response = await fetch(`http://localhost:5000/api/issues/${issueId.value}`)
-    const result = await response.json()
+    const result = await MockAPI.getIssue(issueId.value)
 
-    if (result.success) {
-      Object.assign(formData.value, result.data)
+    if (result.success && result.data.formData) {
+      Object.assign(formData.value, result.data.formData)
     } else {
       ElMessage.error('加载数据失败')
     }
@@ -319,16 +327,8 @@ const loadIssueData = async () => {
 
 // Excel导入处理
 const handleExcelChange = async (file) => {
-  const formData = new FormData()
-  formData.append('file', file.raw)
-
   try {
-    const response = await fetch('http://localhost:5000/api/import-excel', {
-      method: 'POST',
-      body: formData,
-    })
-
-    const result = await response.json()
+    const result = await MockAPI.importExcel(file.raw)
 
     if (result.success) {
       // 填充表单数据
@@ -355,15 +355,13 @@ const validateForm = async () => {
 
 // 保存数据
 const saveData = async () => {
-  const response = await fetch(`http://localhost:5000/api/issues/${issueId.value}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(issueData.value),
-  })
+  const result = await MockAPI.saveFormData(
+    issueId.value,
+    formData.value,
+    1, // 步骤1
+    'draft' // 草稿状态
+  )
 
-  const result = await response.json()
   if (!result.success) {
     throw new Error(result.message || '保存失败')
   }
@@ -412,20 +410,7 @@ const nextStep = async () => {
   }
 }
 
-// 步骤导航
-const goToStep2 = () => {
-  router.push({
-    name: 'remote-help-step2',
-    params: { id: issueId.value },
-  })
-}
-
-const goToStep3 = () => {
-  router.push({
-    name: 'remote-help-step3',
-    params: { id: issueId.value },
-  })
-}
+// 步骤导航功能已移除，只能通过下一步按钮进入下个步骤
 
 // 返回列表
 const handleGoBack = () => {

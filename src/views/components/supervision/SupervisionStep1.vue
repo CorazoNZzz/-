@@ -1,3 +1,11 @@
+<!--
+  督查在线第一步：交办信息
+  功能：一中队人员填写问题交办的基本信息
+  字段：问题标题、问题内容、属地、联系人
+  权限：一中队人员填写
+  作者：CorazoN
+  创建时间：2025年6月
+-->
 <template>
   <div class="page-container">
     <div class="header-bar">
@@ -15,16 +23,15 @@
         :active="1"
         finish-status="success"
         align-center
-        style="cursor: pointer; margin-bottom: 32px"
+        style="margin-bottom: 32px"
       >
         <el-step title="交办信息" description="督查在线 - 交办信息" />
-        <el-step title="问题交办" @click="goToStep2" />
-        <el-step title="整改情况" @click="goToStep3" />
+        <el-step title="问题交办" />
+        <el-step title="整改情况" />
       </el-steps>
 
       <!-- 表单内容 -->
       <div class="content-area">
-        <h3 style="color: #217346; margin-bottom: 20px">督查在线 - 交办信息</h3>
 
         <el-form
           ref="formRef"
@@ -54,34 +61,18 @@
           </el-form-item>
 
           <el-form-item label="属地" prop="location">
-            <el-input v-model="formData.location" placeholder="请输入属地信息" />
+            <el-select v-model="formData.location" placeholder="请选择属地" style="width: 100%">
+              <el-option label="龙山所" value="龙山所" />
+              <el-option label="逍林所" value="逍林所" />
+              <el-option label="坎墩所" value="坎墩所" />
+              <el-option label="观海卫所" value="观海卫所" />
+              <el-option label="周巷所" value="周巷所" />
+              <el-option label="浒山所" value="浒山所" />
+            </el-select>
           </el-form-item>
 
           <el-form-item label="联系人" prop="contact">
             <el-input v-model="formData.contact" placeholder="请输入联系人姓名" />
-          </el-form-item>
-
-          <el-form-item label="联系电话" prop="phone">
-            <el-input v-model="formData.phone" placeholder="请输入联系电话" />
-          </el-form-item>
-
-          <el-form-item label="整改时限" prop="deadline">
-            <el-date-picker
-              v-model="formData.deadline"
-              type="date"
-              placeholder="请选择整改时限"
-              style="width: 100%"
-            />
-          </el-form-item>
-
-          <el-form-item label="现场照片">
-            <el-upload class="upload-demo" drag multiple :auto-upload="false" accept="image/*">
-              <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-              <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-              <template #tip>
-                <div class="el-upload__tip">支持 jpg/png 文件，且不超过 10MB</div>
-              </template>
-            </el-upload>
           </el-form-item>
         </el-form>
       </div>
@@ -108,8 +99,9 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { UploadFilled } from '@element-plus/icons-vue'
+
 import ReportGenerator from '../../../components/ReportGenerator.vue'
+import { MockAPI } from '../../../utils/api.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -123,8 +115,6 @@ const formData = ref({
   content: '',
   location: '',
   contact: '',
-  phone: '',
-  deadline: null,
 })
 
 // 问题数据
@@ -145,13 +135,8 @@ const saving = ref(false)
 const formRules = {
   title: [{ required: true, message: '请输入问题标题', trigger: 'blur' }],
   content: [{ required: true, message: '请输入问题内容', trigger: 'blur' }],
-  location: [{ required: true, message: '请输入属地信息', trigger: 'blur' }],
+  location: [{ required: true, message: '请选择属地', trigger: 'change' }],
   contact: [{ required: true, message: '请输入联系人', trigger: 'blur' }],
-  phone: [
-    { required: true, message: '请输入联系电话', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' },
-  ],
-  deadline: [{ required: true, message: '请选择整改时限', trigger: 'change' }],
 }
 
 // 生命周期
@@ -166,11 +151,13 @@ const loadIssueData = async () => {
   loading.value = true
 
   try {
-    const response = await fetch(`http://localhost:5000/api/issues/${issueId.value}`)
-    const result = await response.json()
+    const result = await MockAPI.getIssue(issueId.value)
 
-    if (result.success) {
-      Object.assign(formData.value, result.data)
+    if (result.success && result.data.formData) {
+      // 加载第一步的数据
+      if (result.data.formData.step1) {
+        Object.assign(formData.value, result.data.formData.step1)
+      }
     } else {
       ElMessage.error('加载数据失败')
     }
@@ -189,15 +176,13 @@ const validateForm = async () => {
 
 // 保存数据
 const saveData = async () => {
-  const response = await fetch(`http://localhost:5000/api/issues/${issueId.value}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(issueData.value),
-  })
+  const result = await MockAPI.saveFormData(
+    issueId.value,
+    { step1: formData.value }, // 将数据保存到step1
+    1, // 步骤1
+    'draft' // 草稿状态
+  )
 
-  const result = await response.json()
   if (!result.success) {
     throw new Error(result.message || '保存失败')
   }
@@ -246,20 +231,7 @@ const nextStep = async () => {
   }
 }
 
-// 步骤导航
-const goToStep2 = () => {
-  router.push({
-    name: 'supervision-step2',
-    params: { id: issueId.value },
-  })
-}
-
-const goToStep3 = () => {
-  router.push({
-    name: 'supervision-step3',
-    params: { id: issueId.value },
-  })
-}
+// 步骤导航功能已移除，只能通过下一步按钮进入下个步骤
 
 // 返回列表
 const handleGoBack = () => {

@@ -1,468 +1,324 @@
+<!--
+  远程帮扶第三步：整改情况
+  功能：属地所人员查看整改完成状态（固定状态，无需操作）
+  权限：属地所人员查看
+  作者：CorazoN
+  创建时间：2025年6月
+-->
 <template>
-  <div class="remote-help-step3">
-    <el-card class="step-card">
-      <template #header>
-        <div class="card-header">
-          <h3>第三步：整改情况</h3>
-          <span class="step-desc">填写整改措施和效果</span>
-        </div>
-      </template>
+  <div class="page-container">
+    <div class="header-bar">
+      <img src="/src/assets/logo.svg" class="logo" alt="logo" />
+      <div class="system-title">环保局问题交办系统</div>
+      <div class="header-actions">
+        <span>登录人：管理员</span>
+        <el-button type="primary" @click="handleGoBack">返回列表</el-button>
+      </div>
+    </div>
 
-      <el-form ref="formRef" :model="formData" :rules="rules" label-width="140px" class="step-form">
-        <div class="form-section">
-          <h4>整改时间</h4>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="整改开始日期" prop="startDate">
-                <el-date-picker
-                  v-model="formData.startDate"
-                  type="date"
-                  placeholder="选择开始日期"
-                  style="width: 100%"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="整改完成日期" prop="completionDate">
-                <el-date-picker
-                  v-model="formData.completionDate"
-                  type="date"
-                  placeholder="选择完成日期"
-                  style="width: 100%"
-                />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </div>
+    <el-card shadow="always" class="main-card" v-loading="loading">
+      <!-- 步骤条 -->
+      <el-steps
+        :active="3"
+        finish-status="success"
+        align-center
+        style="margin-bottom: 32px"
+      >
+        <el-step title="交办信息" />
+        <el-step title="问题交办" />
+        <el-step title="整改情况" description="远程帮扶 - 整改情况" />
+      </el-steps>
 
-        <div class="form-section">
-          <h4>整改内容</h4>
-          <el-form-item label="整改措施" prop="measures">
-            <el-input
-              v-model="formData.measures"
-              type="textarea"
-              :rows="5"
-              placeholder="请详细描述采取的整改措施..."
-            />
-          </el-form-item>
-
-          <el-form-item label="整改效果" prop="effect">
-            <el-input
-              v-model="formData.effect"
-              type="textarea"
-              :rows="4"
-              placeholder="请描述整改后的效果和变化..."
-            />
-          </el-form-item>
-
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="整改状态" prop="status">
-                <el-select
-                  v-model="formData.status"
-                  placeholder="请选择整改状态"
-                  style="width: 100%"
-                >
-                  <el-option label="已完成" value="已完成" />
-                  <el-option label="部分完成" value="部分完成" />
-                  <el-option label="未完成" value="未完成" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="验收结果" prop="acceptanceResult">
-                <el-select
-                  v-model="formData.acceptanceResult"
-                  placeholder="请选择验收结果"
-                  style="width: 100%"
-                >
-                  <el-option label="合格" value="合格" />
-                  <el-option label="基本合格" value="基本合格" />
-                  <el-option label="不合格" value="不合格" />
-                  <el-option label="待验收" value="待验收" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
+      <!-- 表单内容 -->
+      <div class="content-area">
+        <!-- 当前整改状态 -->
+        <div class="status-section">
+          <h4>当前整改状态</h4>
+          <el-tag
+            type="success"
+            size="large"
+            class="status-tag"
+          >
+            整改完成
+          </el-tag>
         </div>
 
-        <div class="form-section">
-          <h4>投入情况</h4>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="资金投入(万元)" prop="fundingInput">
-                <el-input-number
-                  v-model="formData.fundingInput"
-                  :precision="2"
-                  :min="0"
-                  :max="9999999"
-                  style="width: 100%"
-                  placeholder="请输入资金投入"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="技术支持" prop="technicalSupport">
-                <el-input v-model="formData.technicalSupport" placeholder="请输入技术支持情况" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-form-item label="人员投入" prop="personnelInput">
-            <el-input v-model="formData.personnelInput" placeholder="请描述人员投入情况" />
-          </el-form-item>
+        <!-- 整改情况记录 -->
+        <div class="records-section">
+          <h4>整改情况记录</h4>
+          <div class="records-list">
+            <div class="record-item">
+              <div class="record-header">
+                <span class="record-time">
+                  <el-icon><Clock /></el-icon>
+                  {{ completionTime }}
+                </span>
+                <el-tag type="success" size="small">
+                  整改完成
+                </el-tag>
+              </div>
+              <div class="record-content">
+                远程帮扶流程已全部完成，问题已得到妥善处理。
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div class="form-section">
-          <h4>问题与计划</h4>
-          <el-form-item label="存在问题" prop="existingProblems">
-            <el-input
-              v-model="formData.existingProblems"
-              type="textarea"
-              :rows="3"
-              placeholder="请描述整改过程中发现的问题..."
-            />
-          </el-form-item>
-
-          <el-form-item label="后续计划" prop="followUpPlan">
-            <el-input
-              v-model="formData.followUpPlan"
-              type="textarea"
-              :rows="3"
-              placeholder="请描述后续的工作计划..."
-            />
-          </el-form-item>
-        </div>
-
-        <div class="form-section">
-          <h4>责任人信息</h4>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="整改负责人" prop="responsible">
-                <el-input v-model="formData.responsible" placeholder="请输入整改负责人姓名" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="联系电话" prop="phone">
-                <el-input v-model="formData.phone" placeholder="请输入联系电话" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="验收人员" prop="inspector">
-                <el-input v-model="formData.inspector" placeholder="请输入验收人员姓名" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="验收日期" prop="inspectionDate">
-                <el-date-picker
-                  v-model="formData.inspectionDate"
-                  type="date"
-                  placeholder="选择验收日期"
-                  style="width: 100%"
-                />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </div>
-
-        <div class="form-section">
-          <h4>相关资料</h4>
-          <el-form-item label="整改照片">
-            <el-upload
-              ref="photoUploadRef"
-              :file-list="formData.photos"
-              :on-change="handlePhotoChange"
-              :on-remove="handlePhotoRemove"
-              :before-upload="beforePhotoUpload"
-              :auto-upload="false"
-              accept="image/*"
-              multiple
-              list-type="picture-card"
-            >
-              <el-icon><Plus /></el-icon>
-            </el-upload>
-            <div class="upload-tip">支持 jpg、png、gif 格式，单个文件不超过 5MB</div>
-          </el-form-item>
-
-          <el-form-item label="相关文件">
-            <el-upload
-              ref="fileUploadRef"
-              :file-list="formData.attachments"
-              :on-change="handleFileChange"
-              :on-remove="handleFileRemove"
-              :before-upload="beforeFileUpload"
-              :auto-upload="false"
-              accept=".pdf,.doc,.docx,.xls,.xlsx"
-              multiple
-              drag
-            >
-              <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-              <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-              <template #tip>
-                <div class="el-upload__tip">支持 PDF、Word、Excel 格式，单个文件不超过 10MB</div>
-              </template>
-            </el-upload>
-          </el-form-item>
-
-          <el-form-item label="备注说明">
-            <el-input
-              v-model="formData.remarks"
-              type="textarea"
-              :rows="3"
-              placeholder="其他需要说明的情况..."
-            />
-          </el-form-item>
-        </div>
-      </el-form>
+      </div>
 
       <!-- 操作按钮 -->
-      <div class="form-actions">
-        <el-button @click="$emit('prev')">上一步</el-button>
-        <el-button @click="saveDraft" :loading="loading">保存草稿</el-button>
-        <el-button type="success" @click="complete" :loading="loading">完成</el-button>
+      <div class="action-buttons">
+        <div class="left-actions">
+          <!-- 移除上一步按钮 -->
+        </div>
+
+        <div class="right-actions">
+          <el-button @click="saveDraft" :loading="saving"> 保存草稿 </el-button>
+
+          <ReportGenerator :issue-data="issueData" :form-type="'远程帮扶'" />
+
+          <!-- 整改完成状态显示完成按钮 -->
+          <el-button type="success" disabled>
+            整改已完成
+          </el-button>
+        </div>
       </div>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Plus, UploadFilled } from '@element-plus/icons-vue'
-import { useRoute } from 'vue-router'
+import { Clock } from '@element-plus/icons-vue'
+import ReportGenerator from '../../../components/ReportGenerator.vue'
+import { MockAPI } from '../../../utils/api.js'
 
 const route = useRoute()
-const formRef = ref()
-const photoUploadRef = ref()
-const fileUploadRef = ref()
-const loading = ref(false)
+const router = useRouter()
 
-// 表单数据
-const formData = reactive({
-  startDate: '',
-  completionDate: '',
-  measures: '',
-  effect: '',
-  status: '',
-  acceptanceResult: '',
-  fundingInput: 0,
-  technicalSupport: '',
-  personnelInput: '',
-  existingProblems: '',
-  followUpPlan: '',
-  responsible: '',
-  phone: '',
-  inspector: '',
-  inspectionDate: '',
-  photos: [],
-  attachments: [],
-  remarks: '',
+// 问题ID
+const issueId = ref(route.params.id)
+
+// 完成时间
+const completionTime = ref(new Date().toLocaleString('zh-CN', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+}))
+
+// 问题数据
+const issueData = computed(() => ({
+  id: issueId.value,
+  formType: '远程帮扶',
+  step: 3,
+  currentStatus: '整改完成',
+  completionTime: completionTime.value,
+}))
+
+// 状态
+const loading = ref(false)
+const saving = ref(false)
+
+// 生命周期
+onMounted(async () => {
+  if (issueId.value && issueId.value !== 'new') {
+    await markAsCompleted()
+  }
 })
 
-// 表单验证规则
-const rules = {
-  startDate: [{ required: true, message: '请选择整改开始日期', trigger: 'change' }],
-  measures: [
-    { required: true, message: '请填写整改措施', trigger: 'blur' },
-    { min: 20, message: '整改措施至少20个字符', trigger: 'blur' },
-  ],
-  effect: [
-    { required: true, message: '请填写整改效果', trigger: 'blur' },
-    { min: 10, message: '整改效果至少10个字符', trigger: 'blur' },
-  ],
-  status: [{ required: true, message: '请选择整改状态', trigger: 'change' }],
-  responsible: [{ required: true, message: '请填写整改负责人', trigger: 'blur' }],
-  phone: [
-    { required: true, message: '请填写联系电话', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' },
-  ],
-}
+// 标记为已完成
+const markAsCompleted = async () => {
+  loading.value = true
 
-// 组件通信
-const emit = defineEmits(['prev', 'complete'])
-
-// 照片上传处理
-const handlePhotoChange = (file, fileList) => {
-  formData.photos = fileList
-}
-
-const handlePhotoRemove = (file, fileList) => {
-  formData.photos = fileList
-}
-
-const beforePhotoUpload = (file) => {
-  const isImage = file.type.startsWith('image/')
-  const isLt5M = file.size / 1024 / 1024 < 5
-
-  if (!isImage) {
-    ElMessage.error('只能上传图片文件!')
-    return false
+  try {
+    // 保存完成状态
+    await MockAPI.saveFormData(
+      issueId.value,
+      { step3: { status: '整改完成', completedTime: new Date().toISOString() } },
+      3, // 步骤3
+      'completed' // 已完成状态
+    )
+  } catch (error) {
+    console.error('标记完成状态失败:', error)
+  } finally {
+    loading.value = false
   }
-  if (!isLt5M) {
-    ElMessage.error('图片大小不能超过 5MB!')
-    return false
-  }
-  return true
-}
-
-// 文件上传处理
-const handleFileChange = (file, fileList) => {
-  formData.attachments = fileList
-}
-
-const handleFileRemove = (file, fileList) => {
-  formData.attachments = fileList
-}
-
-const beforeFileUpload = (file) => {
-  const isValidType = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  ].includes(file.type)
-
-  const isLt10M = file.size / 1024 / 1024 < 10
-
-  if (!isValidType) {
-    ElMessage.error('文件格式不支持!')
-    return false
-  }
-  if (!isLt10M) {
-    ElMessage.error('文件大小不能超过 10MB!')
-    return false
-  }
-  return true
 }
 
 // 保存草稿
 const saveDraft = async () => {
-  loading.value = true
+  saving.value = true
+
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    ElMessage.success('草稿保存成功！')
-  } catch {
+    await MockAPI.saveFormData(
+      issueId.value,
+      { step3: { status: '整改完成', completedTime: new Date().toISOString() } },
+      3,
+      'completed'
+    )
+    ElMessage.success('保存成功！')
+  } catch (error) {
+    console.error('保存失败:', error)
     ElMessage.error('保存失败，请重试')
   } finally {
-    loading.value = false
+    saving.value = false
   }
 }
 
-// 完成
-const complete = async () => {
-  if (!formRef.value) return
-
-  try {
-    await formRef.value.validate()
-    loading.value = true
-
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    ElMessage.success('远程帮扶问题处理完成！')
-    emit('complete', formData)
-  } catch {
-    console.error('验证失败')
-  } finally {
-    loading.value = false
-  }
+// 返回列表
+const handleGoBack = () => {
+  router.push({ name: 'home' })
 }
-
-// 加载已有数据
-const loadData = async () => {
-  try {
-    // 模拟加载数据
-  } catch {
-    console.error('加载数据失败')
-  }
-}
-
-onMounted(() => {
-  loadData()
-})
 </script>
 
 <style scoped>
-.remote-help-step3 {
-  max-width: 1000px;
-  margin: 0 auto;
+.page-container {
+  padding: 0;
+  background: linear-gradient(135deg, #e8f5e9 0%, #e3f2fd 100%);
+  min-height: 100vh;
 }
 
-.step-card {
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.card-header {
+.header-bar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0 32px;
+  height: 64px;
+  box-shadow: 0 2px 8px rgba(33, 115, 70, 0.04);
 }
 
-.card-header h3 {
-  margin: 0;
+.logo {
+  height: 38px;
+  margin-right: 16px;
+}
+
+.system-title {
+  font-size: 22px;
+  font-weight: bold;
   color: #217346;
-  font-size: 20px;
+  letter-spacing: 2px;
+  flex: 1;
 }
 
-.step-desc {
-  color: #666;
-  font-size: 14px;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
 }
 
-.step-form {
-  padding: 24px;
+.main-card {
+  margin: 40px auto 0 auto;
+  max-width: 900px;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px 0 rgba(33, 115, 70, 0.08);
+  border: none;
+  background: #fff;
 }
 
-.form-section {
-  margin-bottom: 32px;
-  padding: 20px;
-  background: #fafafa;
+.content-area {
+  padding: 24px 16px;
+  border: 1px solid #d0e6d5;
   border-radius: 8px;
-  border-left: 4px solid #217346;
+  min-height: 300px;
+  background: #f8fbf7;
+  margin-bottom: 20px;
 }
 
-.form-section h4 {
+.status-section {
+  margin-bottom: 32px;
+}
+
+.status-section h4 {
+  margin: 0 0 16px 0;
+  color: #217346;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.status-tag {
+  font-size: 16px;
+  padding: 8px 16px;
+  font-weight: 600;
+}
+
+.records-section {
+  margin-top: 20px;
+}
+
+.records-section h4 {
   margin: 0 0 20px 0;
   color: #217346;
   font-size: 16px;
   font-weight: 600;
 }
 
-.upload-tip {
-  font-size: 12px;
-  color: #999;
-  margin-top: 8px;
-}
-
-.form-actions {
+.records-list {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   gap: 16px;
-  padding-top: 24px;
-  border-top: 1px solid #eee;
 }
 
-.form-actions .el-button {
-  min-width: 120px;
-  height: 40px;
+.record-item {
+  padding: 16px;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #e1f3d8;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-:deep(.el-upload--picture-card) {
-  width: 80px;
-  height: 80px;
+.record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
-:deep(.el-upload-list--picture-card .el-upload-list__item) {
-  width: 80px;
-  height: 80px;
+.record-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+  font-size: 14px;
 }
 
-:deep(.el-upload-dragger) {
-  width: 100%;
-  height: 120px;
+.record-content {
+  color: #333;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-top: 1px solid #e0e0e0;
+  background: #fff;
+}
+
+.left-actions,
+.right-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.el-steps {
+  margin: 30px 0 16px 0;
+}
+
+:deep(.el-step__title) {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+:deep(.el-step__description) {
+  font-size: 14px;
+  color: #666;
 }
 </style>
